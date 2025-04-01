@@ -1,11 +1,18 @@
 package com.eouil.bank.bankapi.dtos.requests;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class TransferRequestDTO {
 
-    private Long fromAccountNumber;
-    private Long toAccountNumber;
+    private String fromAccountNumber;
+    private String toAccountNumber;
     private BigDecimal amount;
     private String memo;
 }

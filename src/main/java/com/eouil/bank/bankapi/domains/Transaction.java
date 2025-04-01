@@ -45,7 +45,7 @@ public class Transaction {
 
     // 빌더 패턴 적용 생성자
     @Builder
-    public Transaction(Account fromAccount, Account toAccount, TransactionType type, BigDecimal amount, String memo, TransactionStatus status, BigDecimal balanceAfter) {
+    public Transaction(Account fromAccount, Account toAccount, TransactionType type, BigDecimal amount, String memo, TransactionStatus status, BigDecimal balanceAfter,LocalDateTime createdAt) {
         this.fromAccount = fromAccount;
         this.toAccount = toAccount;
         this.type = type;
@@ -53,6 +53,7 @@ public class Transaction {
         this.memo = memo;
         this.status = status != null ? status : TransactionStatus.PENDING;
         this.balanceAfter = balanceAfter;
+        this.createdAt = createdAt;
     }
 
     @PrePersist
