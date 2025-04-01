@@ -47,4 +47,11 @@ public class AuthService {
 
         return new LoginResponse(accessToken, refreshToken);
     }
+
+    public void logout(String token) {
+        // 실제로 JWT를 검증하고 로그아웃 처리 구현 해야 함
+        if (token == null || token.isEmpty()) {
+            throw new RuntimeException("토큰 없음/만료");
+        }
+    }
 }
