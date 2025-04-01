@@ -9,7 +9,7 @@ import java.security.Key;
 import java.util.Date;
 
 public class JwtUtil {
-    private static final String SECRET_KEY = "your-secret-key-your-secret-key"; // HS256, 최소 32자(256bits) 이상
+    private static final String SECRET_KEY = "0123456789abcdef0123456789abcdef"; // HS256, 최소 32자(256bits) 이상
                                                                                 // 배포 시 환경변수로 관리해야 함
     private static final long EXPIRATION_TIME = 1000 * 60 * 60; // 1시간
 
