@@ -7,6 +7,8 @@ import com.eouil.bank.bankapi.dtos.responses.JoinResponse;
 import com.eouil.bank.bankapi.dtos.responses.LoginResponse;
 import com.eouil.bank.bankapi.exceptions.DuplicateEmailException;
 import com.eouil.bank.bankapi.repositories.UserRepository;
+import com.eouil.bank.bankapi.utils.JwtUtil;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -41,15 +43,13 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
-        // JWT 생성 (JWT 구현 후, 실제 값으로 교체해야 함)
-        String accessToken = "jwt-access-token";
-        String refreshToken = "jwt-refresh-token";
+        // JWT 생성
+        String accessToken = JwtUtil.generateToken(user.getEmail());
 
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResponse(accessToken);
     }
 
     public void logout(String token) {
-        // 실제로 JWT를 검증하고 로그아웃 처리 구현 해야 함
         if (token == null || token.isEmpty()) {
             throw new RuntimeException("토큰 없음/만료");
         }
