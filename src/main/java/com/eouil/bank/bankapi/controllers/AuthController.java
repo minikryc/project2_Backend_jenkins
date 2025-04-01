@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
+
 @RestController
 public class AuthController {
     private final AuthService authService;
@@ -23,13 +26,13 @@ public class AuthController {
     }
 
     @PostMapping("/join")
-    public ResponseEntity<JoinResponse> join(@RequestBody JoinRequest joinRequest) {
+    public ResponseEntity<JoinResponse> join(@Valid @RequestBody JoinRequest joinRequest) {
         JoinResponse joinResponse = authService.join(joinRequest);
         return ResponseEntity.ok(joinResponse);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             LoginResponse loginResponse = authService.login(loginRequest);
             return ResponseEntity.ok(loginResponse);
