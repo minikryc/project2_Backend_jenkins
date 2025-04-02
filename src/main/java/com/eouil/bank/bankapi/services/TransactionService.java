@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class TransactionService {
 
-        private final UserRepository userRepository;
+    private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionJdbcRepository transactionRepository;
 
