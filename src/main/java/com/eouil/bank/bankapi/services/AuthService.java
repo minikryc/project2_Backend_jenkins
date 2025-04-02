@@ -9,6 +9,7 @@ import com.eouil.bank.bankapi.exceptions.DuplicateEmailException;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -16,9 +17,11 @@ import java.util.UUID;
 @Service
 public class AuthService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public JoinResponse join(JoinRequest joinRequest) {
@@ -32,7 +35,7 @@ public class AuthService {
         user.setUserId(userId);
         user.setName(joinRequest.name);
         user.setEmail(joinRequest.email);
-        user.setPassword(joinRequest.password);
+        user.setPassword(passwordEncoder.encode(joinRequest.password)); // 비밀번호 암호화
 
         userRepository.save(user);
 
@@ -44,8 +47,8 @@ public class AuthService {
         User user = userRepository.findByEmail(loginRequest.email)
                 .orElseThrow(() -> new RuntimeException("Email not found"));
 
-        // 비밀번호 확인
-        if (!user.getPassword().equals(loginRequest.password)) {
+        // 비밀번호 확인 (BCrypt 암호 비교)
+        if (!passwordEncoder.matches(loginRequest.password, user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
