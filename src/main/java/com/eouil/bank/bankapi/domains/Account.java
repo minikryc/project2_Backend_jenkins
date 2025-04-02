@@ -17,5 +17,4 @@ public class Account {
     private User user;
     private BigDecimal balance;
     private LocalDateTime createdAt;
-
 }
