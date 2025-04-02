@@ -8,11 +8,11 @@ import java.time.LocalDateTime;
 @Getter
 public class CreateAccountResponse {
     private String accountNumber;
-    private Long userId;
+    private String userId;
     private BigDecimal balance;
     private LocalDateTime createdAt;
 
-    public CreateAccountResponse(String accountNumber, Long userId, BigDecimal balance, LocalDateTime createdAt) {
+    public CreateAccountResponse(String accountNumber, String userId, BigDecimal balance, LocalDateTime createdAt) {
         this.accountNumber = accountNumber;
         this.userId = userId;
         this.balance = balance;

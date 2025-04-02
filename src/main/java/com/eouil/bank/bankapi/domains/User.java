@@ -8,8 +8,9 @@ import lombok.Setter;
 @Table(name = "users")
 @Getter@Setter
 public class User {
-    @Id @GeneratedValue
-    private Long userId;
+    @Id
+    @Column(length = 36)
+    private String userId;
     @Column(length = 16, nullable = false)
     private String name;
     @Column(length = 50, nullable = false, unique = true)

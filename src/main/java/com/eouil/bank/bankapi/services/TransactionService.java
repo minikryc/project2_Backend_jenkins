@@ -15,7 +15,6 @@ import com.eouil.bank.bankapi.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -28,7 +27,7 @@ public class TransactionService {
 
     public TransactionResponseDTO transfer(TransferRequestDTO request, String token) {
         String email = JwtUtil.validateTokenAndGetEmail(token);
-        Long userId = userRepository.findByEmail(email)
+        String userId = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
 
         Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
@@ -68,7 +67,7 @@ public class TransactionService {
 
     public TransactionResponseDTO withdraw(WithdrawRequestDTO request, String token) {
         String email = JwtUtil.validateTokenAndGetEmail(token);
-        Long userId = userRepository.findByEmail(email)
+        String userId = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
 
         Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
@@ -102,7 +101,7 @@ public class TransactionService {
 
     public TransactionResponseDTO deposit(DepositRequestDTO request, String token) {
         String email = JwtUtil.validateTokenAndGetEmail(token);
-        Long userId = userRepository.findByEmail(email)
+        String userId = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
 
         Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())

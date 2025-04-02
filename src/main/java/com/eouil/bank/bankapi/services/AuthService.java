@@ -11,6 +11,8 @@ import com.eouil.bank.bankapi.utils.JwtUtil;
 
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class AuthService {
     private final UserRepository userRepository;
@@ -24,10 +26,14 @@ public class AuthService {
             throw new DuplicateEmailException();
         }
 
+        String userId = UUID.randomUUID().toString();
+
         User user = new User();
+        user.setUserId(userId);
         user.setName(joinRequest.name);
         user.setEmail(joinRequest.email);
         user.setPassword(joinRequest.password);
+
         userRepository.save(user);
 
         return new JoinResponse(user.getUserId(), user.getName(), user.getEmail());
