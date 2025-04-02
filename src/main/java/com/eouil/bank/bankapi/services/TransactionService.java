@@ -4,6 +4,7 @@ import com.eouil.bank.bankapi.domains.Account;
 import com.eouil.bank.bankapi.domains.Transaction;
 import com.eouil.bank.bankapi.domains.TransactionStatus;
 import com.eouil.bank.bankapi.domains.TransactionType;
+import com.eouil.bank.bankapi.domains.User;
 import com.eouil.bank.bankapi.dtos.requests.DepositRequestDTO;
 import com.eouil.bank.bankapi.dtos.requests.TransferRequestDTO;
 import com.eouil.bank.bankapi.dtos.requests.WithdrawRequestDTO;
@@ -21,22 +22,23 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class TransactionService {
 
-    private final UserRepository userRepository;
+        private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionJdbcRepository transactionRepository;
 
     public TransactionResponseDTO transfer(TransferRequestDTO request, String token) {
-        String email = JwtUtil.validateTokenAndGetEmail(token);
-        String userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
+        String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
                 .orElseThrow(() -> new RuntimeException("From Account not found"));
         Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
                 .orElseThrow(() -> new RuntimeException("To Account not found"));
 
-        if (!fromAccount.getUser().getUserId().equals(userId)) {
-            throw new SecurityException("Unauthorized access to account");
+        if (!fromAccount.getUser().getUserId().equals(user.getUserId())) {
+                throw new SecurityException("Unauthorized access to account");
         }
 
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
@@ -66,14 +68,14 @@ public class TransactionService {
     }
 
     public TransactionResponseDTO withdraw(WithdrawRequestDTO request, String token) {
-        String email = JwtUtil.validateTokenAndGetEmail(token);
-        String userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        if (!fromAccount.getUser().getUserId().equals(userId)) {
+        if (!fromAccount.getUser().getUserId().equals(user.getUserId())) {
             throw new SecurityException("Unauthorized access to account");
         }
 
@@ -100,15 +102,16 @@ public class TransactionService {
     }
 
     public TransactionResponseDTO deposit(DepositRequestDTO request, String token) {
-        String email = JwtUtil.validateTokenAndGetEmail(token);
-        String userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found")).getUserId();
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        if (!toAccount.getUser().getUserId().equals(userId)) {
-            throw new SecurityException("Unauthorized access to account");
+        if (!toAccount.getUser().getUserId().equals(user.getUserId())) {
+                throw new SecurityException("Unauthorized access to account");
         }
 
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
