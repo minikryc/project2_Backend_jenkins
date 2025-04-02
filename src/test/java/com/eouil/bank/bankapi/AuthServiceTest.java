@@ -1,4 +1,4 @@
-package com.eouil.bank.bankapi.controllers;
+package com.eouil.bank.bankapi;
 
 
 import com.eouil.bank.bankapi.domains.User;
