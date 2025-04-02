@@ -6,6 +6,7 @@ import com.eouil.bank.bankapi.dtos.requests.CreateAccountRequest;
 import com.eouil.bank.bankapi.dtos.responses.CreateAccountResponse;
 import com.eouil.bank.bankapi.repositories.AccountRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
+import com.eouil.bank.bankapi.utils.JwtUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,9 +22,11 @@ public class AccountService {
         this.userRepository = userRepository;
     }
 
-    public CreateAccountResponse createAccount(CreateAccountRequest AccountRequest) {
-        User user = userRepository.findById(AccountRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+    public CreateAccountResponse createAccount(CreateAccountRequest AccountRequest, String token) {
+        String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
+
+        User user = userRepository.findById(userId) // userId로 사용자 조회
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String accountNumber = generateUniqueAccountNumber();
 
@@ -42,6 +45,7 @@ public class AccountService {
                 account.getCreatedAt()
         );
     }
+
     private String generateUniqueAccountNumber() {
         String number;
         do {

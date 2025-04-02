@@ -50,14 +50,14 @@ public class AuthService {
         }
 
         // JWT 생성
-        String accessToken = JwtUtil.generateToken(user.getEmail());
+        String accessToken = JwtUtil.generateToken(user.getUserId());
 
         return new LoginResponse(accessToken);
     }
 
     public void logout(String token) {
         if (token == null || token.isEmpty()) {
-            throw new RuntimeException("토큰 없음/만료");
+            throw new RuntimeException("No token / Token expired");
         }
     }
 }

@@ -16,16 +16,18 @@ public class JwtUtil {
     
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
-    public static String generateToken(String email) {
+    // userId로 토큰 생성
+    public static String generateToken(String userId) {
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(userId)  // userId로 토큰 생성
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(KEY, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public static String validateTokenAndGetEmail(String token) {
+    // JWT 토큰을 검증하고 userId 추출
+    public static String validateTokenAndGetUserId(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(KEY)
                 .build()
@@ -35,4 +37,3 @@ public class JwtUtil {
         return claims.getSubject();
     }
 }
-
