@@ -12,12 +12,17 @@ import com.eouil.bank.bankapi.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 @Service
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    // refresh token 임시 저장소
+    final Map<String, String> refreshStore = new HashMap<>();
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -53,14 +58,42 @@ public class AuthService {
         }
 
         // JWT 생성
-        String accessToken = JwtUtil.generateToken(user.getUserId());
+        String accessToken = JwtUtil.generateAccessToken(user.getUserId());
+        String refreshToken = JwtUtil.generateRefreshToken(user.getUserId());
 
-        return new LoginResponse(accessToken);
+        refreshStore.put(user.getUserId(), refreshToken);  // 메모리에 저장
+
+        return new LoginResponse(accessToken, refreshToken);
+    }
+
+    public String refreshAccessToken(String refreshToken) {
+        String userId = JwtUtil.validateTokenAndGetUserId(refreshToken);
+        String storedRefreshToken = refreshStore.get(userId);
+
+        System.out.println("userId from token: " + userId);
+        System.out.println("storedRefreshToken: " + storedRefreshToken);
+        System.out.println("received refreshToken: " + refreshToken);
+        
+        if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
+            throw new RuntimeException("Invalid or expired refresh token");
+        }
+
+        return JwtUtil.generateAccessToken(userId);  // 새 Access Token 발급
     }
 
     public void logout(String token) {
         if (token == null || token.isEmpty()) {
             throw new RuntimeException("No token / Token expired");
         }
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+    
+        refreshStore.remove(userId);
+    
+        System.out.println("userId 로그아웃 처리됨: " + userId);
+    }    
+
+    // 테스트용
+    public void putRefreshTokenForTest(String userId, String refreshToken) {
+        refreshStore.put(userId, refreshToken);
     }
 }
