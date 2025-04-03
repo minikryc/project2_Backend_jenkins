@@ -7,6 +7,7 @@ import com.eouil.bank.bankapi.dtos.requests.WithdrawRequestDTO;
 import com.eouil.bank.bankapi.dtos.responses.TransactionResponseDTO;
 import com.eouil.bank.bankapi.repositories.AccountRepository;
 import com.eouil.bank.bankapi.repositories.TransactionJdbcRepository;
+import com.eouil.bank.bankapi.repositories.TransactionRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.services.TransactionService;
 import com.eouil.bank.bankapi.utils.JwtUtil;
@@ -19,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,6 +34,7 @@ class TransactionServiceTest {
     @Mock private AccountRepository accountRepository;
     @Mock private TransactionJdbcRepository transactionRepository;
     @InjectMocks private TransactionService transactionService;
+    @Mock private TransactionRepository transactionJPARepository;
 
     private final String token = "mock.jwt.token";
     private final String userId = "user-123";
@@ -281,6 +285,81 @@ class TransactionServiceTest {
 
             verify(accountRepository).save(to);
             verify(transactionRepository).save(any(Transaction.class));
+        }
+    }
+
+    @Test
+    void testGetTransactions_success() {
+        try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
+            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+
+            //사용자
+            when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+            // 계좌 하나
+            Account account1 = new Account();
+            account1.setAccountNumber("111-222");
+            account1.setUser(mockUser);
+
+            when(accountRepository.findByUser(mockUser)).thenReturn(List.of(account1));
+
+            // 트랜잭션 3개
+            Transaction tx1 = Transaction.builder()
+                    .fromAccount(account1)
+                    .type(TransactionType.WITHDRAWAL)
+                    .amount(new BigDecimal("5000"))
+                    .memo("출금 1")
+                    .status(TransactionStatus.COMPLETED)
+                    .balanceAfter(new BigDecimal("10000"))
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            Transaction tx2 = Transaction.builder()
+                    .fromAccount(account1)
+                    .type(TransactionType.WITHDRAWAL)
+                    .amount(new BigDecimal("3000"))
+                    .memo("출금 2")
+                    .status(TransactionStatus.COMPLETED)
+                    .balanceAfter(new BigDecimal("7000"))
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            Transaction tx3 = Transaction.builder()
+                    .toAccount(account1)
+                    .type(TransactionType.DEPOSIT)
+                    .amount(new BigDecimal("2000"))
+                    .memo("입금")
+                    .status(TransactionStatus.COMPLETED)
+                    .balanceAfter(new BigDecimal("9000"))
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            when(transactionJPARepository.findByAccountNumber("111-222")).thenReturn(List.of(tx1, tx2, tx3));
+
+            //호출
+            List<TransactionResponseDTO> result = transactionService.getTransactions(token);
+
+            //검증
+            assertEquals(3, result.size());
+
+            TransactionResponseDTO r1 = result.get(0);
+            assertEquals("출금 1", r1.getMemo());
+            assertEquals("WITHDRAWAL", r1.getType());
+            assertEquals(new BigDecimal("5000"), r1.getAmount());
+
+            TransactionResponseDTO r2 = result.get(1);
+            assertEquals("출금 2", r2.getMemo());
+            assertEquals(new BigDecimal("3000"), r2.getAmount());
+
+            TransactionResponseDTO r3 = result.get(2);
+            assertEquals("입금", r3.getMemo());
+            assertEquals("DEPOSIT", r3.getType());
+            assertEquals(new BigDecimal("2000"), r3.getAmount());
+
+            System.out.println("총 거래 건수: " + result.size());
+            result.forEach(tx -> {
+                System.out.println("- [" + tx.getType() + "] " + tx.getMemo() + " | 금액: " + tx.getAmount());
+            });
         }
     }
 }

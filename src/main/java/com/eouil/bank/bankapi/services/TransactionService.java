@@ -11,12 +11,17 @@ import com.eouil.bank.bankapi.dtos.requests.WithdrawRequestDTO;
 import com.eouil.bank.bankapi.dtos.responses.TransactionResponseDTO;
 import com.eouil.bank.bankapi.repositories.AccountRepository;
 import com.eouil.bank.bankapi.repositories.TransactionJdbcRepository;
+import com.eouil.bank.bankapi.repositories.TransactionRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,7 @@ public class TransactionService {
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionJdbcRepository transactionRepository;
+    private final TransactionRepository transactionJPARepository;
 
     public TransactionResponseDTO transfer(TransferRequestDTO request, String token) {
         String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
@@ -145,4 +151,24 @@ public class TransactionService {
                 .createdAt(tx.getCreatedAt())
                 .build();
     }
+
+    public List<TransactionResponseDTO> getTransactions(String token) {
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Account> accounts = accountRepository.findByUser(user);
+
+        List<Transaction> allTransactions = new ArrayList<>();
+        for (Account ac : accounts) {
+            List<Transaction> transactions = transactionJPARepository.findByAccountNumber(ac.getAccountNumber());
+            allTransactions.addAll(transactions);
+        }
+
+        return allTransactions.stream()
+                .map(this::buildResponse)
+                .collect(Collectors.toList());
+    }
+
 }
