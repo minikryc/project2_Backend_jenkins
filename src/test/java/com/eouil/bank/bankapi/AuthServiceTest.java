@@ -71,7 +71,6 @@ class AuthServiceTest {
 
     @Test
     void login_success() {
-        // given
         LoginRequest request = new LoginRequest();
         request.email = "valid@example.com";
         request.password = "validPassword123";
@@ -79,17 +78,16 @@ class AuthServiceTest {
         User mockUser = new User();
         mockUser.setUserId("test-user-id");
         mockUser.setEmail(request.email);
-        mockUser.setPassword(request.password);
+        mockUser.setPassword("encoded-password");
 
         when(userRepository.findByEmail(request.email)).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(request.password, mockUser.getPassword())).thenReturn(true);
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
-            jwtMock.when(() -> JwtUtil.generateToken("test-user-id")).thenReturn("mock-token");
+            jwtMock.when(() -> JwtUtil.generateAccessToken("test-user-id")).thenReturn("mock-token");
 
-            // when
             LoginResponse response = authService.login(request);
 
-            // then
             assertEquals("mock-token", response.getAccessToken());
         }
     }
@@ -121,6 +119,42 @@ class AuthServiceTest {
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(request));
         assertEquals("Invalid password", ex.getMessage());
+    }
+
+    @Test
+    void refreshAccessToken_success() {
+        String userId = "test-user-id";
+        String refreshToken = "valid-refresh-token";
+        String newAccessToken = "new-access-token";
+
+        // refreshStore에 저장된 토큰과 동일한 값으로 설정
+        authService.putRefreshTokenForTest(userId, refreshToken);
+
+        try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
+            jwtMock.when(() -> JwtUtil.validateTokenAndGetUserId(refreshToken)).thenReturn(userId);
+            jwtMock.when(() -> JwtUtil.generateAccessToken(userId)).thenReturn(newAccessToken);
+
+        String result = authService.refreshAccessToken(refreshToken);
+
+        assertEquals(newAccessToken, result);
+       }
+    }
+
+    @Test
+    void refreshAccessToken_invalidToken_shouldThrowException() {
+        String userId = "test-user-id";
+        String invalidToken = "wrong-token";
+
+        authService.putRefreshTokenForTest(userId, "correct-token");
+
+        try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
+            jwtMock.when(() -> JwtUtil.validateTokenAndGetUserId(invalidToken)).thenReturn(userId);
+
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    authService.refreshAccessToken(invalidToken));
+
+            assertEquals("Invalid or expired refresh token", ex.getMessage());
+        }
     }
 
     @Test

@@ -41,10 +41,37 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestHeader("Authorization") String refreshToken) {
+        try {
+            System.out.println("받은 refreshToken: " + refreshToken);
+
+            if (refreshToken.startsWith("Bearer ")) {
+                refreshToken = refreshToken.substring(7);
+            }
+
+            String newAccessToken = authService.refreshAccessToken(refreshToken);
+            System.out.println("새 accessToken 발급 성공");
+
+            return ResponseEntity.ok(new LoginResponse(newAccessToken));
+        } catch (RuntimeException e) {
+            System.out.println("리프레시 실패: " + e.getMessage());
+
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new LogoutResponse("Refresh failed: " + e.getMessage()));
+            }
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout(@RequestHeader("Authorization") String token) {
         try {
+            if (token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+
             authService.logout(token);
+            
             return ResponseEntity.ok(new LogoutResponse("로그아웃 완료")); 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LogoutResponse("토큰 없음/만료"));

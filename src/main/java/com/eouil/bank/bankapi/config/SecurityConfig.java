@@ -23,9 +23,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frame -> frame.disable())) // ✅ 최신 방식
                 .formLogin(form -> form.disable())
+                .logout(logout -> logout.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/join", "/login", "/h2-console/**").permitAll()
+                        .requestMatchers("/join", "/login", "/refresh", "/logout", "/accounts", "/transactions", "/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
