@@ -4,6 +4,7 @@ import com.eouil.bank.bankapi.domains.Account;
 import com.eouil.bank.bankapi.domains.User;
 import com.eouil.bank.bankapi.dtos.requests.CreateAccountRequest;
 import com.eouil.bank.bankapi.dtos.responses.CreateAccountResponse;
+import com.eouil.bank.bankapi.dtos.responses.GetMyAccountResponse;
 import com.eouil.bank.bankapi.repositories.AccountRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AccountService {
@@ -21,6 +23,24 @@ public class AccountService {
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
     }
+
+    public List<GetMyAccountResponse> getMyaccount(String token) {
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return user.getAccounts().stream()
+                .map(account -> new GetMyAccountResponse(
+                        account.getAccountNumber(),
+                        account.getBalance(),
+                        account.getCreatedAt()
+                ))
+                .toList(); // Java 16 이상이라면 .toList()
+    }
+
+
+
 
     public CreateAccountResponse createAccount(CreateAccountRequest AccountRequest, String token) {
         String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
