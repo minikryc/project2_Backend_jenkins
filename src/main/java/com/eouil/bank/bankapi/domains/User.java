@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+import java.util.ArrayList;
+
 @Entity
 @Table(name = "users")
 @Getter@Setter
@@ -17,4 +20,7 @@ public class User {
     private String email;
     @Column(length = 100, nullable = false)
     private String password;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Account> accounts = new ArrayList<>();
 }
