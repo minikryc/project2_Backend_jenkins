@@ -44,7 +44,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return new JoinResponse(user.getUserId(), user.getName(), user.getEmail());
+        return new JoinResponse(user.getName(), user.getEmail());
     }
 
     public LoginResponse login(LoginRequest loginRequest) {
