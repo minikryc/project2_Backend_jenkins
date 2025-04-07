@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/join", "/login", "/refresh", "/logout", "/accounts/**", "/transactions", "/h2-console/**").permitAll()
+                        .requestMatchers("/join", "/login", "/refresh", "/logout", "/accounts/**", "/transactions/**", "/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
