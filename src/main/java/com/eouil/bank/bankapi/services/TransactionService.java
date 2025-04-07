@@ -96,7 +96,7 @@ public class TransactionService {
                 .fromAccount(fromAccount)
                 .type(TransactionType.WITHDRAWAL)
                 .amount(request.getAmount())
-                .memo("출금")
+                .memo(request.getMemo())
                 .status(TransactionStatus.COMPLETED)
                 .balanceAfter(fromAccount.getBalance())
                 .createdAt(LocalDateTime.now())
@@ -116,9 +116,9 @@ public class TransactionService {
         Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        if (!toAccount.getUser().getUserId().equals(user.getUserId())) {
-                throw new SecurityException("Unauthorized access to account");
-        }
+       if (!toAccount.getUser().getUserId().equals(user.getUserId())) {
+              throw new SecurityException("Unauthorized access to account");
+       }
 
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
         accountRepository.save(toAccount);
@@ -127,7 +127,7 @@ public class TransactionService {
                 .toAccount(toAccount)
                 .type(TransactionType.DEPOSIT)
                 .amount(request.getAmount())
-                .memo("입금")
+                .memo(request.getMemo())
                 .status(TransactionStatus.COMPLETED)
                 .balanceAfter(toAccount.getBalance())
                 .createdAt(LocalDateTime.now())

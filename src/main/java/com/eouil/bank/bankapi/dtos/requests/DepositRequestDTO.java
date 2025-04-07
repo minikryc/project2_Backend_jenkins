@@ -12,4 +12,6 @@ import java.math.BigDecimal;
 public class DepositRequestDTO {
     private String toAccountNumber;
     private BigDecimal amount;
+    private String memo;
+
 }

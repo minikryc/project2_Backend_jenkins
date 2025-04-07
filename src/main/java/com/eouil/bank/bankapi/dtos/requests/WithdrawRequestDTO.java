@@ -12,4 +12,5 @@ import java.math.BigDecimal;
 public class WithdrawRequestDTO {
     private String fromAccountNumber;
     private BigDecimal amount;
+    private String memo;
 }

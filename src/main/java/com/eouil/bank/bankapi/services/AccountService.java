@@ -36,10 +36,8 @@ public class AccountService {
                         account.getBalance(),
                         account.getCreatedAt()
                 ))
-                .toList(); // Java 16 이상이라면 .toList()
+                .toList();
     }
-
-
 
 
     public CreateAccountResponse createAccount(CreateAccountRequest AccountRequest, String token) {
