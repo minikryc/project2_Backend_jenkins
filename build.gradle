@@ -44,6 +44,8 @@ dependencies {
 
 	implementation 'com.h2database:h2' //개발용
 	implementation 'org.springframework.boot:spring-boot-starter-security' // encoder 암호화용
+
+	implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final' // validation
 }
 
 tasks.named('test') {
