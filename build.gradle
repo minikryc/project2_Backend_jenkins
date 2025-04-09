@@ -47,7 +47,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security' // encoder 암호화용
 
 	implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final' // validation
-	implementation 'io.github.cdimascio:java-dotenv:5.2.2' // 환경변수 적용
+//	implementation 'io.github.cdimascio:java-dotenv:5.2.2' // 환경변수 적용
 }
 
 tasks.named('test') {
