@@ -5,11 +5,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      minimum-idle: 3           # 최소 유휴 커넥션 수
-      maximum-pool-size: 10     # 최대 커넥션 수 (DB 성능에 따라 조절)
-      idle-timeout: 30000       # 유휴 상태 유지 시간 (30초)
-      max-lifetime: 600000      # 커넥션 최대 생존 시간 (10분)
-      connection-timeout: 30000 # 커넥션 획득 대기 시간 (30초)
+      minimum-idle: 3
+      maximum-pool-size: 10
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 30000
 
   jpa:
     hibernate:
@@ -17,4 +17,33 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  tracing:
+    enabled: true
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    logs:
+      export:
+        enabled: false
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+  service:
+    name: bankapi-service
+
+logging:
+  level:
+    root: INFO
+    com.eouil.bank.bankapi: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
