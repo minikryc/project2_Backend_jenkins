@@ -26,7 +26,10 @@ public class SecurityConfig {
                 .cors(cors -> cors
                         .configurationSource(request -> {
                             CorsConfiguration config = new CorsConfiguration();
-                            config.setAllowedOrigins(List.of("http://localhost:5173")); // 프론트 주소
+                            config.setAllowedOrigins(List.of("http://localhost:5173", //개발용 주소
+                                    "https://eouil.com", //프론트 주소
+                                    "https://www.eouil.com"));
+
                             config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                             config.setAllowedHeaders(List.of("*"));
                             config.setAllowCredentials(true);
@@ -39,7 +42,7 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/join", "/login", "/refresh", "/logout", "/accounts/**", "/transactions/**", "/h2-console/**").permitAll()
+                        .requestMatchers("/join", "/login", "/refresh", "/logout", "/accounts/**", "/transactions/**", "/h2-console/**", "/health").permitAll()
                         .anyRequest().authenticated()
                 );
 
