@@ -1,6 +1,6 @@
 package com.eouil.bank.bankapi.config;
 
-import com.eouil.bank.bankapi.config.JwtAuthenticationFilter;
+import com.eouil.bank.bankapi.repositories.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,13 +18,15 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // JwtAuthenticationFilter를 Bean으로 등록
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(); // JwtUtil 주입 필요하면 생성자 인자에 넣어줘
+    public JwtAuthenticationFilter jwtAuthenticationFilter(UserRepository userRepository) {
+        return new JwtAuthenticationFilter(userRepository);
     }
 
+    // SecurityFilterChain 설정
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
@@ -51,11 +53,12 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class); // ✅ 여기서 직접 호출
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // 비밀번호 인코더
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

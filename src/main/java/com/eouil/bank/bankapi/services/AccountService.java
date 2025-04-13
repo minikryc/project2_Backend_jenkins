@@ -40,10 +40,8 @@ public class AccountService {
     }
 
 
-    public CreateAccountResponse createAccount(CreateAccountRequest AccountRequest, String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
-
-        User user = userRepository.findById(userId) // userId로 사용자 조회
+    public CreateAccountResponse createAccount(CreateAccountRequest request, String userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String accountNumber = generateUniqueAccountNumber();
@@ -51,7 +49,7 @@ public class AccountService {
         Account account = new Account();
         account.setAccountNumber(accountNumber);
         account.setUser(user);
-        account.setBalance(AccountRequest.getBalance() != null ? AccountRequest.getBalance() : BigDecimal.ZERO);
+        account.setBalance(request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO);
         account.setCreatedAt(LocalDateTime.now());
 
         accountRepository.save(account);
@@ -63,6 +61,7 @@ public class AccountService {
                 account.getCreatedAt()
         );
     }
+
 
     private String generateUniqueAccountNumber() {
         String number;

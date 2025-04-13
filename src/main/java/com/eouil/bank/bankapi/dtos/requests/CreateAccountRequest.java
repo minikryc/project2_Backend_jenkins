@@ -9,8 +9,6 @@ import jakarta.validation.constraints.*;
 
 @Getter@Setter
 public class CreateAccountRequest {
-    @NotNull(message = "사용자 ID는 필수 항목입니다.")
-    private Long userId;
 
     @NotNull(message = "잔액은 필수 항목입니다.")
     @Positive(message = "잔액은 양수여야 합니다.")

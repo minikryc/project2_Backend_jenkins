@@ -1,5 +1,7 @@
 package com.eouil.bank.bankapi.config;
 
+import com.eouil.bank.bankapi.domains.User;
+import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +14,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final UserRepository userRepository;
+
+    public JwtAuthenticationFilter(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -32,8 +40,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String userId = JwtUtil.validateTokenAndGetUserId(token);
 
+                // User 객체로부터 principal 설정
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                        userId, null, null
+                        user.getUserId(), null, null
                 );
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
