@@ -33,11 +33,10 @@ management:
     logs:
       export:
         enabled: true
+    endpoint: http://otel-collector:4318  # 4317에서 4318로 변경
+    protocol: http/protobuf  # grpc에서 http/protobuf로 변경
 
 otel:
-  exporter:
-    otlp:
-      endpoint: http://localhost:4317
   service:
     name: bankapi-service
 
