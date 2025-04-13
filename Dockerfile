@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM --platform=linux/amd64 openjdk:17-jdk-slim
 
 WORKDIR /app
 
