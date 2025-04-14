@@ -1,5 +1,4 @@
-# 1. Java 17 이미지 (x86 아키텍처용)
-FROM openjdk:17-jdk-slim
+FROM --platform=linux/amd64 openjdk:17-jdk-slim
 
 # 2. 작업 디렉터리
 WORKDIR /app
