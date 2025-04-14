@@ -34,7 +34,7 @@ management:
     logs:
       export:
         enabled: true
-    endpoint: http://otel-collector:4318  # 4317에서 4318로 변경
+    endpoint: http://3.35.210.176:4318  # 4317에서 4318로 변경
     protocol: http/protobuf  # grpc에서 http/protobuf로 변경
 
 otel:
