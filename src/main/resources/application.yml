@@ -25,25 +25,10 @@ management:
     web:
       exposure:
         include: health, info, metrics
-#   tracing:
-#     enabled: true
-#   otlp:
-#     metrics:
-#       export:
-#         enabled: false
-#     logs:
-#       export:
-#         enabled: true
-#     endpoint: http://172.31.36.171:4318  # 4317에서 4318로 변경
-#     protocol: http/protobuf  # grpc에서 http/protobuf로 변경
 
-# otel:
-#   service:
-#     name: bankapi-service
-
-# logging:
-#   level:
-#     root: INFO
-#     com.eouil.bank.bankapi: DEBUG
-#     org.hibernate.SQL: DEBUG
-#     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+logging:
+  level:
+    root: INFO
+    com.eouil.bank.bankapi: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
