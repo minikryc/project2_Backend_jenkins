@@ -27,7 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 인증이 필요 없는 경로는 필터에서 제외
+        // 로그인, 회원가입, 리프레시 요청은 필터 통과
         if (path.startsWith("/api/join") || path.startsWith("/api/login") || path.startsWith("/api/refresh")) {
             filterChain.doFilter(request, response);
             return;
@@ -35,26 +35,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = request.getHeader("Authorization");
 
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.replace("Bearer ", "");
-            try {
-                String userId = JwtUtil.validateTokenAndGetUserId(token);
+        // 토큰이 없으면 인증 안된 상태로 통과 (403 발생 안 하게)
+        if (token == null || !token.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-                // User 객체로부터 principal 설정
-                User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        token = token.replace("Bearer ", "");
+        try {
+            String userId = JwtUtil.validateTokenAndGetUserId(token);
 
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                        user.getUserId(), null, null
-                );
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            //유저 검증
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            } catch (RuntimeException e) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
-                return;
-            }
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                    user.getUserId(), null, null
+            );
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        } catch (Exception e) {
+            //인증 실패 → 명시적으로 401 Unauthorized 반환
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
         }
 
         filterChain.doFilter(request, response);
     }
+
 }
