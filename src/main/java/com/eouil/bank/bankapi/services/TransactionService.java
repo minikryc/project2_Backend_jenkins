@@ -1,10 +1,6 @@
 package com.eouil.bank.bankapi.services;
 
-import com.eouil.bank.bankapi.domains.Account;
-import com.eouil.bank.bankapi.domains.Transaction;
-import com.eouil.bank.bankapi.domains.TransactionStatus;
-import com.eouil.bank.bankapi.domains.TransactionType;
-import com.eouil.bank.bankapi.domains.User;
+import com.eouil.bank.bankapi.domains.*;
 import com.eouil.bank.bankapi.dtos.requests.DepositRequestDTO;
 import com.eouil.bank.bankapi.dtos.requests.TransferRequestDTO;
 import com.eouil.bank.bankapi.dtos.requests.WithdrawRequestDTO;
@@ -15,14 +11,16 @@ import com.eouil.bank.bankapi.repositories.TransactionRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -32,28 +30,29 @@ public class TransactionService {
     private final TransactionJdbcRepository transactionRepository;
     private final TransactionRepository transactionJPARepository;
 
+    @Transactional
     public TransactionResponseDTO transfer(TransferRequestDTO request, String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);   // JWT 토큰에서 userId 추출
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        log.info("[TRANSFER] 요청 - 사용자: {}, 출금계좌: {}, 입금계좌: {}, 금액: {}", userId, request.getFromAccountNumber(), request.getToAccountNumber(), request.getAmount());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
-                .orElseThrow(() -> new RuntimeException("From Account not found"));
-        Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
-                .orElseThrow(() -> new RuntimeException("To Account not found"));
+        Account fromAccount = accountRepository.findByAccountNumberForUpdate(request.getFromAccountNumber());
+        Account toAccount = accountRepository.findByAccountNumberForUpdate(request.getToAccountNumber());
 
         if (!fromAccount.getUser().getUserId().equals(user.getUserId())) {
-                throw new SecurityException("Unauthorized access to account");
+            log.warn("[TRANSFER] 인증 실패 - 사용자 {}가 계좌 {}에 접근", userId, fromAccount.getAccountNumber());
+            throw new SecurityException("Unauthorized access to account");
         }
 
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            log.warn("[TRANSFER] 잔액 부족 - 계좌 {}, 잔액 {}, 요청금액 {}", fromAccount.getAccountNumber(), fromAccount.getBalance(), request.getAmount());
             throw new RuntimeException("Insufficient funds");
         }
 
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
-
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
@@ -69,23 +68,28 @@ public class TransactionService {
                 .build();
 
         transactionRepository.save(tx);
+        log.info("[TRANSFER] 완료 - 트랜잭션 ID: {}", tx.getTransactionId());
 
         return buildResponse(tx);
     }
 
+    @Transactional
     public TransactionResponseDTO withdraw(WithdrawRequestDTO request, String token) {
         String userId = JwtUtil.validateTokenAndGetUserId(token);
+        log.info("[WITHDRAW] 요청 - 사용자: {}, 출금계좌: {}, 금액: {}", userId, request.getFromAccountNumber(), request.getAmount());
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Account fromAccount = accountRepository.findByAccountNumber(request.getFromAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        Account fromAccount = accountRepository.findByAccountNumberForUpdate(request.getFromAccountNumber());
 
         if (!fromAccount.getUser().getUserId().equals(user.getUserId())) {
+            log.warn("[WITHDRAW] 인증 실패 - 사용자 {}가 계좌 {}에 접근", userId, fromAccount.getAccountNumber());
             throw new SecurityException("Unauthorized access to account");
         }
 
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            log.warn("[WITHDRAW] 잔액 부족 - 계좌 {}, 잔액 {}, 요청금액 {}", fromAccount.getAccountNumber(), fromAccount.getBalance(), request.getAmount());
             throw new RuntimeException("Insufficient funds");
         }
 
@@ -103,22 +107,25 @@ public class TransactionService {
                 .build();
 
         transactionRepository.save(tx);
+        log.info("[WITHDRAW] 완료 - 트랜잭션 ID: {}", tx.getTransactionId());
 
         return buildResponse(tx);
     }
 
+    @Transactional
     public TransactionResponseDTO deposit(DepositRequestDTO request, String token) {
         String userId = JwtUtil.validateTokenAndGetUserId(token);
+        log.info("[DEPOSIT] 요청 - 사용자: {}, 입금계좌: {}, 금액: {}", userId, request.getToAccountNumber(), request.getAmount());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Account toAccount = accountRepository.findByAccountNumber(request.getToAccountNumber())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        Account toAccount = accountRepository.findByAccountNumberForUpdate(request.getToAccountNumber());
 
-       if (!toAccount.getUser().getUserId().equals(user.getUserId())) {
-              throw new SecurityException("Unauthorized access to account");
-       }
+        if (!toAccount.getUser().getUserId().equals(user.getUserId())) {
+            log.warn("[DEPOSIT] 인증 실패 - 사용자 {}가 계좌 {}에 접근", userId, toAccount.getAccountNumber());
+            throw new SecurityException("Unauthorized access to account");
+        }
 
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
         accountRepository.save(toAccount);
@@ -134,8 +141,28 @@ public class TransactionService {
                 .build();
 
         transactionRepository.save(tx);
+        log.info("[DEPOSIT] 완료 - 트랜잭션 ID: {}", tx.getTransactionId());
 
         return buildResponse(tx);
+    }
+
+    public List<TransactionResponseDTO> getTransactions(String token) {
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        log.info("[GET TRANSACTIONS] 요청 - 사용자: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Account> accounts = accountRepository.findByUser(user);
+        List<Transaction> allTransactions = new ArrayList<>();
+        for (Account ac : accounts) {
+            allTransactions.addAll(transactionJPARepository.findByAccountNumber(ac.getAccountNumber()));
+        }
+
+        log.info("[GET TRANSACTIONS] 완료 - 총 트랜잭션 수: {}", allTransactions.size());
+        return allTransactions.stream()
+                .map(this::buildResponse)
+                .collect(Collectors.toList());
     }
 
     private TransactionResponseDTO buildResponse(Transaction tx) {
@@ -151,24 +178,4 @@ public class TransactionService {
                 .createdAt(tx.getCreatedAt())
                 .build();
     }
-
-    public List<TransactionResponseDTO> getTransactions(String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        List<Account> accounts = accountRepository.findByUser(user);
-
-        List<Transaction> allTransactions = new ArrayList<>();
-        for (Account ac : accounts) {
-            List<Transaction> transactions = transactionJPARepository.findByAccountNumber(ac.getAccountNumber());
-            allTransactions.addAll(transactions);
-        }
-
-        return allTransactions.stream()
-                .map(this::buildResponse)
-                .collect(Collectors.toList());
-    }
-
 }

@@ -8,12 +8,14 @@ import com.eouil.bank.bankapi.dtos.responses.GetMyAccountResponse;
 import com.eouil.bank.bankapi.repositories.AccountRepository;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class AccountService {
     private final AccountRepository accountRepository;
@@ -26,23 +28,34 @@ public class AccountService {
 
     public List<GetMyAccountResponse> getMyaccount(String token) {
         String userId = JwtUtil.validateTokenAndGetUserId(token);
+        log.info("[GET MY ACCOUNT] 요청 - userId: {}", userId);
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("[GET MY ACCOUNT] 사용자 없음 - userId: {}", userId);
+                    return new RuntimeException("User not found");
+                });
 
-        return user.getAccounts().stream()
+        List<GetMyAccountResponse> accounts = user.getAccounts().stream()
                 .map(account -> new GetMyAccountResponse(
                         account.getAccountNumber(),
                         account.getBalance(),
                         account.getCreatedAt()
                 ))
                 .toList();
+
+        log.info("[GET MY ACCOUNT] 조회 완료 - 계좌 수: {}", accounts.size());
+        return accounts;
     }
 
-
     public CreateAccountResponse createAccount(CreateAccountRequest request, String userId) {
+        log.info("[CREATE ACCOUNT] 요청 - userId: {}", userId);
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("[CREATE ACCOUNT] 사용자 없음 - userId: {}", userId);
+                    return new RuntimeException("User not found");
+                });
 
         String accountNumber = generateUniqueAccountNumber();
 
@@ -54,6 +67,8 @@ public class AccountService {
 
         accountRepository.save(account);
 
+        log.info("[CREATE ACCOUNT] 계좌 생성 완료 - 계좌번호: {}, 초기잔액: {}", accountNumber, account.getBalance());
+
         return new CreateAccountResponse(
                 account.getAccountNumber(),
                 user.getUserId(),
@@ -61,7 +76,6 @@ public class AccountService {
                 account.getCreatedAt()
         );
     }
-
 
     private String generateUniqueAccountNumber() {
         String number;

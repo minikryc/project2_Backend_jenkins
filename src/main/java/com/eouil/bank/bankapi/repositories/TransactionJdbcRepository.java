@@ -1,6 +1,7 @@
 package com.eouil.bank.bankapi.repositories;
 
 import com.eouil.bank.bankapi.domains.Transaction;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ public class TransactionJdbcRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @Transactional
     public void save(Transaction tx) {
         String sql = "INSERT INTO transaction (from_account_number, to_account_number, type, amount, memo, status, balance_after, created_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
