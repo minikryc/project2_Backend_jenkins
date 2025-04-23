@@ -39,19 +39,14 @@ public class JwtUtil {
 
     // JWT 토큰을 검증하고 userId 추출
     public static String validateTokenAndGetUserId(String token) {
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(KEY)
-                    .build()
-                    .parseClaimsJws(token.replace("Bearer ", ""))
-                    .getBody();
-    
-            return claims.getSubject();
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            throw new RuntimeException("Token expired");
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid token");
-        }
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(KEY)
+                .setAllowedClockSkewSeconds(60) // ← 1분 정도 시간 차 허용
+                .build()
+                .parseClaimsJws(token.replace("Bearer ", ""))
+                .getBody();
+
+        return claims.getSubject();
     }
     
 }
