@@ -5,13 +5,19 @@ import com.eouil.bank.bankapi.dtos.requests.JoinRequest;
 import com.eouil.bank.bankapi.dtos.requests.LoginRequest;
 import com.eouil.bank.bankapi.dtos.responses.JoinResponse;
 import com.eouil.bank.bankapi.dtos.responses.LoginResponse;
-import com.eouil.bank.bankapi.exceptions.DuplicateEmailException;
+import com.eouil.bank.bankapi.exceptions.*;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.core.env.Environment;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
@@ -21,13 +27,24 @@ import java.util.UUID;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+    private final Environment env;
+    private final RedisTemplate<String, String> redisTemplate;
 
-    // refresh token 임시 저장소
     final Map<String, String> refreshStore = new HashMap<>();
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       Environment env,
+                       RedisTemplate<String, String> redisTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.env = env;
+        this.redisTemplate = redisTemplate;
+    }
+
+    public boolean isLocal() {
+        return Arrays.asList(env.getActiveProfiles()).contains("local");
     }
 
     public JoinResponse join(JoinRequest joinRequest) {
@@ -39,13 +56,11 @@ public class AuthService {
         }
 
         String userId = UUID.randomUUID().toString();
-
         User user = new User();
         user.setUserId(userId);
         user.setName(joinRequest.name);
         user.setEmail(joinRequest.email);
-        user.setPassword(passwordEncoder.encode(joinRequest.password)); // 비밀번호 암호화
-
+        user.setPassword(passwordEncoder.encode(joinRequest.password));
         userRepository.save(user);
 
         log.info("[JOIN] 완료 - userId: {}, email: {}", userId, user.getEmail());
@@ -56,14 +71,10 @@ public class AuthService {
         log.info("[LOGIN] 요청 - email: {}", loginRequest.email);
 
         User user = userRepository.findByEmail(loginRequest.email)
-                .orElseThrow(() -> {
-                    log.warn("[LOGIN] 존재하지 않는 이메일 - {}", loginRequest.email);
-                    return new RuntimeException("Email not found");
-                });
+                .orElseThrow(() -> new UserNotFoundException(loginRequest.email));
 
         if (!passwordEncoder.matches(loginRequest.password, user.getPassword())) {
-            log.warn("[LOGIN] 비밀번호 불일치 - email: {}", loginRequest.email);
-            throw new RuntimeException("Invalid password");
+            throw new InvalidPasswordException();
         }
 
         String accessToken = JwtUtil.generateAccessToken(user.getUserId());
@@ -82,11 +93,9 @@ public class AuthService {
         String storedRefreshToken = refreshStore.get(userId);
 
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
-            log.warn("[REFRESH] 유효하지 않거나 만료된 토큰 - userId: {}", userId);
-            throw new RuntimeException("Invalid or expired refresh token");
+            throw new InvalidRefreshTokenException();
         }
 
-        log.info("[REFRESH] accessToken 재발급 성공 - userId: {}", userId);
         return JwtUtil.generateAccessToken(userId);
     }
 
@@ -94,8 +103,7 @@ public class AuthService {
         log.info("[LOGOUT] 요청");
 
         if (token == null || token.isEmpty()) {
-            log.warn("[LOGOUT] 토큰 없음");
-            throw new RuntimeException("No token / Token expired");
+            throw new TokenMissingException();
         }
 
         String userId = JwtUtil.validateTokenAndGetUserId(token);
@@ -104,8 +112,47 @@ public class AuthService {
         log.info("[LOGOUT] 완료 - userId: {}", userId);
     }
 
-    // 테스트용
     public void putRefreshTokenForTest(String userId, String refreshToken) {
         refreshStore.put(userId, refreshToken);
+    }
+
+    public String generateOtpUrl(String email) {
+        GoogleAuthenticatorKey key = gAuth.createCredentials();
+        String secret = key.getKey();
+
+        if (isLocal()) {
+            saveSecretToH2(email, secret);
+        } else {
+            saveSecretToRedis(email, secret);
+        }
+
+        return String.format("otpauth://totp/%s?secret=%s&issuer=EouilBank", email, secret);
+    }
+
+    public boolean verifyCode(String email, int code) {
+        String secret = isLocal() ? getSecretFromH2(email) : getSecretFromRedis(email);
+        return gAuth.authorize(secret, code);
+    }
+
+    private void saveSecretToH2(String email, String secret) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException(email));
+        user.setMfaSecret(secret);
+        userRepository.save(user);
+    }
+
+    private String getSecretFromH2(String email) {
+        return userRepository.findByEmail(email)
+                .map(User::getMfaSecret)
+                .orElseThrow(() -> new MfaSecretNotFoundException("H2에서 " + email));
+    }
+
+    private void saveSecretToRedis(String email, String secret) {
+        redisTemplate.opsForHash().put("MFA:SECRETS", email, secret);
+    }
+
+    private String getSecretFromRedis(String email) {
+        Object secret = redisTemplate.opsForHash().get("MFA:SECRETS", email);
+        if (secret == null) throw new MfaSecretNotFoundException("Redis에서 " + email);
+        return (String) secret;
     }
 }
