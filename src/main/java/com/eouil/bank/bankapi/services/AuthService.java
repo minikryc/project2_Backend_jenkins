@@ -1,6 +1,7 @@
 package com.eouil.bank.bankapi.services;
 
 import com.eouil.bank.bankapi.domains.User;
+import com.eouil.bank.bankapi.dtos.requests.CreateAccountRequest;
 import com.eouil.bank.bankapi.dtos.requests.JoinRequest;
 import com.eouil.bank.bankapi.dtos.requests.LoginRequest;
 import com.eouil.bank.bankapi.dtos.responses.JoinResponse;
@@ -17,6 +18,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
@@ -31,16 +33,19 @@ public class AuthService {
     private final Environment env;
     private final RedisTemplate<String, String> redisTemplate;
 
+    private final AccountService accountService;
+
     final Map<String, String> refreshStore = new HashMap<>();
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        Environment env,
-                       RedisTemplate<String, String> redisTemplate) {
+                       RedisTemplate<String, String> redisTemplate, AccountService accountService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.env = env;
         this.redisTemplate = redisTemplate;
+        this.accountService = accountService;
     }
 
     public boolean isLocal() {
@@ -63,6 +68,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(joinRequest.password));
         userRepository.save(user);
 
+        CreateAccountRequest acctReq = new CreateAccountRequest();
+        acctReq.setBalance(BigDecimal.valueOf(0));  // 초기 잔액을 0원으로 설정
+        accountService.createAccount(acctReq, userId);
+        log.info("[JOIN] 자동 계좌 생성 완료 - userId: {}, initialBalance: {}", userId, 0);
+
         log.info("[JOIN] 완료 - userId: {}, email: {}", userId, user.getEmail());
         return new JoinResponse(user.getName(), user.getEmail());
     }
@@ -82,11 +92,14 @@ public class AuthService {
 
         refreshStore.put(user.getUserId(), refreshToken);
 
-        log.info("[LOGIN] 성공 - userId: {}", user.getUserId());
-        return new LoginResponse(accessToken, refreshToken);
+        boolean mfaRegistered = user.getMfaSecret() != null;
+
+        log.info("[LOGIN] 성공 - userId: {}, MFA 등록 여부: {}", user.getUserId(), mfaRegistered);
+        return new LoginResponse(accessToken, refreshToken, mfaRegistered);
     }
 
-    public String refreshAccessToken(String refreshToken) {
+
+    public LoginResponse refreshAccessToken(String refreshToken) {
         log.info("[REFRESH] 요청");
 
         String userId = JwtUtil.validateTokenAndGetUserId(refreshToken);
@@ -96,8 +109,15 @@ public class AuthService {
             throw new InvalidRefreshTokenException();
         }
 
-        return JwtUtil.generateAccessToken(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        String newAccessToken = JwtUtil.generateAccessToken(userId);
+        boolean mfaRegistered = user.getMfaSecret() != null;
+
+        return new LoginResponse(newAccessToken, refreshToken, mfaRegistered); // 이게 핵심!
     }
+
 
     public void logout(String token) {
         log.info("[LOGOUT] 요청");
@@ -116,17 +136,20 @@ public class AuthService {
         refreshStore.put(userId, refreshToken);
     }
 
-    public String generateOtpUrl(String email) {
-        GoogleAuthenticatorKey key = gAuth.createCredentials();
-        String secret = key.getKey();
+    public String generateOtpUrlByToken(String token) {
+        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (isLocal()) {
-            saveSecretToH2(email, secret);
-        } else {
-            saveSecretToRedis(email, secret);
+        String secret = gAuth.createCredentials().getKey();
+        try {
+            saveSecret(user, secret);  // Redis or H2 저장 로직 분기
+        } catch (Exception e) {
+            log.warn("❗ Redis 저장 실패 → fallback to H2 저장: {}", e.getMessage());
+            saveSecretToH2(user.getEmail(), secret);
         }
 
-        return String.format("otpauth://totp/%s?secret=%s&issuer=EouilBank", email, secret);
+        return String.format("otpauth://totp/%s?secret=%s&issuer=EouilBank", user.getEmail(), secret);
     }
 
     public boolean verifyCode(String email, int code) {
@@ -154,5 +177,13 @@ public class AuthService {
         Object secret = redisTemplate.opsForHash().get("MFA:SECRETS", email);
         if (secret == null) throw new MfaSecretNotFoundException("Redis에서 " + email);
         return (String) secret;
+    }
+
+    private void saveSecret(User user, String secret) {
+        if (isLocal()) {
+            saveSecretToH2(user.getEmail(), secret);
+        } else {
+            saveSecretToRedis(user.getEmail(), secret);
+        }
     }
 }

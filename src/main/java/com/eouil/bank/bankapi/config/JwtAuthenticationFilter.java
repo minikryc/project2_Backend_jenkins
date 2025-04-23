@@ -29,7 +29,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 로그인, 회원가입, 리프레시 요청은 필터 통과
         // 인증이 필요 없는 경로는 필터에서 제외
-        if (path.startsWith("/api/join") || path.startsWith("/api/login") || path.startsWith("/api/refresh")) {
+        if (path.equals("/api/login")
+                || path.equals("/api/join")
+                || path.equals("/api/refresh")
+                || path.equals("/api/logout")
+                || path.startsWith("/api/mfa/")) {
             filterChain.doFilter(request, response);
             return;
         }

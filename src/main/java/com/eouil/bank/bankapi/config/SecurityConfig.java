@@ -46,10 +46,10 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/join", "/api/login", "/api/refresh", "/api/logout",
-                                "/api/accounts/**", "/api/transactions/**", "/api/health"
+//                                "/api/accounts/**", "/api/transactions/**",
+                                "/api/health", "/api/mfa/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -43,10 +45,11 @@ public class AuthController {
             refreshToken = refreshToken.substring(7);
         }
 
-        String newAccessToken = authService.refreshAccessToken(refreshToken);
-        log.info("[POST /refresh] 새로운 accessToken 발급 성공");
-        return ResponseEntity.ok(new LoginResponse(newAccessToken));
+        LoginResponse response = authService.refreshAccessToken(refreshToken);
+        log.info("[POST /refresh] accessToken 재발급 완료 - MFA 등록 여부: {}", response.isMfaRegistered());
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout(@RequestHeader("Authorization") String token) {
@@ -59,5 +62,23 @@ public class AuthController {
         log.info("[POST /logout] 로그아웃 완료");
 
         return ResponseEntity.ok(new LogoutResponse("로그아웃 완료"));
+    }
+
+    @GetMapping("/mfa/setup")
+    public ResponseEntity<?> setupMfa(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        String otpUrl = authService.generateOtpUrlByToken(token);
+
+        log.info("[GET /mfa/setup] MFA URL 생성 완료");
+        return ResponseEntity.ok(Map.of("otpUrl", otpUrl));
+    }
+
+    @PostMapping("/mfa/verify")
+    public ResponseEntity<?> verifyMfa(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        int code = Integer.parseInt(payload.get("code"));
+
+        boolean result = authService.verifyCode(email, code);
+        return ResponseEntity.ok(Map.of("success", result));
     }
 }
