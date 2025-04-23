@@ -70,6 +70,13 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.mockito:mockito-junit-jupiter:4.11.0'
     testImplementation 'org.mockito:mockito-inline:4.11.0'
+
+    //구글 MFA
+    implementation 'com.warrenstrange:googleauth:1.4.0'
+
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core' // Lettuce 클라이언트 사용 시
 }
 
 tasks.named('test') {
