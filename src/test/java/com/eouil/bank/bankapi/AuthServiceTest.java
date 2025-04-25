@@ -134,15 +134,15 @@ class AuthServiceTest {
         String newAccessToken = "new-access-token";
 
         // refreshStore에 저장된 토큰과 동일한 값으로 설정
-        authService.putRefreshTokenForTest(userId, refreshToken);
+//        authService.putRefreshTokenForTest(userId, refreshToken);
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
             jwtMock.when(() -> jwtUtil.validateTokenAndGetUserId(refreshToken)).thenReturn(userId);
             jwtMock.when(() -> jwtUtil.generateAccessToken(userId)).thenReturn(newAccessToken);
 
-        String result = authService.refreshAccessToken(refreshToken);
+        LoginResponse result = authService.refreshAccessToken(refreshToken);
 
-        assertEquals(newAccessToken, result);
+        assertEquals(newAccessToken, result.getRefreshToken());
        }
     }
 
@@ -151,7 +151,7 @@ class AuthServiceTest {
         String userId = "test-user-id";
         String invalidToken = "wrong-token";
 
-        authService.putRefreshTokenForTest(userId, "correct-token");
+//        authService.putRefreshTokenForTest(userId, "correct-token");
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
             jwtMock.when(() -> jwtUtil.validateTokenAndGetUserId(invalidToken)).thenReturn(userId);
