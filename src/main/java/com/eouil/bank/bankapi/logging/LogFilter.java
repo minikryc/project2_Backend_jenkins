@@ -5,7 +5,6 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
@@ -19,6 +18,11 @@ public class LogFilter implements Filter {
 
     private static final String TRACE_ID = "traceId";
     private static final String USER_ID = "userId";
+    private final JwtUtil jwtUtil;
+
+    public LogFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     public void doFilter(
@@ -38,7 +42,7 @@ public class LogFilter implements Filter {
             String authHeader = httpRequest.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                String userId = JwtUtil.validateTokenAndGetUserId(token);
+                String userId = jwtUtil.validateTokenAndGetUserId(token);
                 MDC.put(USER_ID, userId);
             }
 

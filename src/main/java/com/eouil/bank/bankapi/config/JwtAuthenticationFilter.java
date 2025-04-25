@@ -2,7 +2,9 @@ package com.eouil.bank.bankapi.config;
 
 import com.eouil.bank.bankapi.domains.User;
 import com.eouil.bank.bankapi.repositories.UserRepository;
+import com.eouil.bank.bankapi.services.RedisTokenService;
 import com.eouil.bank.bankapi.utils.JwtUtil;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,9 +18,13 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final UserRepository userRepository;
+    private final RedisTokenService redisTokenService;
+    private final JwtUtil jwtUtil;
 
-    public JwtAuthenticationFilter(UserRepository userRepository) {
+    public JwtAuthenticationFilter(UserRepository userRepository, RedisTokenService redisTokenService, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.redisTokenService = redisTokenService;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -40,6 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = request.getHeader("Authorization");
 
+        if (redisTokenService.isBlacklisted(token)) {
+            throw new JwtException("Blacklisted token");
+        }
+
         // 토큰이 없으면 인증 안된 상태로 통과 (403 발생 안 하게)
         if (token == null || !token.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -48,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         token = token.replace("Bearer ", "");
         try {
-            String userId = JwtUtil.validateTokenAndGetUserId(token);
+            String userId = jwtUtil.validateTokenAndGetUserId(token);
 
             //유저 검증
             User user = userRepository.findById(userId)

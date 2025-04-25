@@ -36,9 +36,15 @@ class AccountServiceTest {
     @InjectMocks
     private AccountService accountService;
 
+    private final JwtUtil jwtUtil;
+
     private final String token = "mock.jwt.token";
     private final String userId = "user-123";
     private User mockUser;
+
+    AccountServiceTest(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @BeforeEach
     void setUp() {
@@ -49,11 +55,11 @@ class AccountServiceTest {
     @Test
     void createAccount_success() {
         CreateAccountRequest request = new CreateAccountRequest();
-        request.setUserId(1L); // 테스트에서는 사용 안 함
+//        request.setUserId(1L); // 테스트에서는 사용 안 함
         request.setBalance(new BigDecimal("100000"));
 
         try (MockedStatic<JwtUtil> mockedJwt = mockStatic(JwtUtil.class)) {
-            mockedJwt.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedJwt.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
             when(accountRepository.existsByAccountNumber(anyString())).thenReturn(false);
@@ -75,7 +81,7 @@ class AccountServiceTest {
         request.setBalance(new BigDecimal("100000"));
 
         try (MockedStatic<JwtUtil> mockedJwt = mockStatic(JwtUtil.class)) {
-            mockedJwt.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedJwt.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
             when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
             RuntimeException ex = assertThrows(RuntimeException.class, () ->

@@ -10,9 +10,7 @@ import com.eouil.bank.bankapi.exceptions.*;
 import com.eouil.bank.bankapi.repositories.UserRepository;
 import com.eouil.bank.bankapi.utils.JwtUtil;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,8 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.UUID;
 
 @Slf4j
@@ -34,18 +30,23 @@ public class AuthService {
     private final RedisTemplate<String, String> redisTemplate;
 
     private final AccountService accountService;
-
-    final Map<String, String> refreshStore = new HashMap<>();
+    private final RedisTokenService redisTokenService;
+    private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        Environment env,
-                       RedisTemplate<String, String> redisTemplate, AccountService accountService) {
+                       RedisTemplate<String, String> redisTemplate,
+                       AccountService accountService,
+                       RedisTokenService redisTokenService,
+                       JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.env = env;
         this.redisTemplate = redisTemplate;
         this.accountService = accountService;
+        this.redisTokenService = redisTokenService;
+        this.jwtUtil = jwtUtil;
     }
 
     public boolean isLocal() {
@@ -87,10 +88,11 @@ public class AuthService {
             throw new InvalidPasswordException();
         }
 
-        String accessToken = JwtUtil.generateAccessToken(user.getUserId());
-        String refreshToken = JwtUtil.generateRefreshToken(user.getUserId());
+        String accessToken = jwtUtil.generateAccessToken(user.getUserId());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
-        refreshStore.put(user.getUserId(), refreshToken);
+        // Redis에 리프레시 토큰 저장
+        redisTokenService.saveRefreshToken(user.getUserId(), refreshToken, jwtUtil.getRefreshTokenExpireMillis());
 
         boolean mfaRegistered = user.getMfaSecret() != null;
 
@@ -99,11 +101,12 @@ public class AuthService {
     }
 
 
+    // 토큰 재발급 요청
     public LoginResponse refreshAccessToken(String refreshToken) {
         log.info("[REFRESH] 요청");
 
-        String userId = JwtUtil.validateTokenAndGetUserId(refreshToken);
-        String storedRefreshToken = refreshStore.get(userId);
+        String userId = jwtUtil.validateTokenAndGetUserId(refreshToken);
+        String storedRefreshToken = redisTokenService.getRefreshToken(userId);
 
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new InvalidRefreshTokenException();
@@ -112,7 +115,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        String newAccessToken = JwtUtil.generateAccessToken(userId);
+        String newAccessToken = jwtUtil.generateAccessToken(userId);
         boolean mfaRegistered = user.getMfaSecret() != null;
 
         return new LoginResponse(newAccessToken, refreshToken, mfaRegistered); // 이게 핵심!
@@ -126,18 +129,22 @@ public class AuthService {
             throw new TokenMissingException();
         }
 
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
-        refreshStore.remove(userId);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
+
+        // 리프레시 토큰 redis에서 삭제
+        redisTokenService.deleteRefreshToken(userId);
+
+        // Access Token 남은 시간 계산 (시간 음수 결과값 방지 포함)
+        long expireMillis = Math.max(0, jwtUtil.getExpiration(token) - System.currentTimeMillis());
+
+        // redis에 블랙리스트 등록
+        redisTokenService.addToBlacklist(token, expireMillis);
 
         log.info("[LOGOUT] 완료 - userId: {}", userId);
     }
 
-    public void putRefreshTokenForTest(String userId, String refreshToken) {
-        refreshStore.put(userId, refreshToken);
-    }
-
     public String generateOtpUrlByToken(String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
