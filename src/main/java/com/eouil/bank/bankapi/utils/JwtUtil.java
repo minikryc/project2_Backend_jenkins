@@ -18,7 +18,7 @@ public class JwtUtil {
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
     // access token
-    public static String generateAccessToken(String userId) {
+    public String generateAccessToken(String userId) {
         return Jwts.builder()
                 .setSubject(userId)
                 .setIssuedAt(new Date())
@@ -28,7 +28,7 @@ public class JwtUtil {
     }
 
     // refresh token
-    public static String generateRefreshToken(String userId) {
+    public String generateRefreshToken(String userId) {
         return Jwts.builder()
                 .setSubject(userId)
                 .setIssuedAt(new Date())
@@ -38,7 +38,7 @@ public class JwtUtil {
     }
 
     // JWT 토큰을 검증하고 userId 추출
-    public static String validateTokenAndGetUserId(String token) {
+    public String validateTokenAndGetUserId(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(KEY)
                 .setAllowedClockSkewSeconds(60) // ← 1분 정도 시간 차 허용
@@ -47,6 +47,24 @@ public class JwtUtil {
                 .getBody();
 
         return claims.getSubject();
+    }
+
+    public long getAccessTokenExpireMillis() {
+        return ACCESS_EXP;
+    }
+
+    public long getRefreshTokenExpireMillis() {
+        return REFRESH_EXP;
+    }
+
+    public long getExpiration(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token.replace("Bearer ", ""))
+                .getBody();
+
+        return claims.getExpiration().getTime();
     }
     
 }
