@@ -1,9 +1,10 @@
 package com.eouil.bank.bankapi.config;
 
 import com.eouil.bank.bankapi.repositories.UserRepository;
+import com.eouil.bank.bankapi.services.RedisTokenService;
+import com.eouil.bank.bankapi.utils.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,8 +21,8 @@ public class SecurityConfig {
 
     // JwtAuthenticationFilter를 Bean으로 등록
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(UserRepository userRepository) {
-        return new JwtAuthenticationFilter(userRepository);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(UserRepository userRepository, RedisTokenService redisTokenService, JwtUtil jwtUtil) {
+        return new JwtAuthenticationFilter(userRepository, redisTokenService, jwtUtil);
     }
 
     // SecurityFilterChain 설정

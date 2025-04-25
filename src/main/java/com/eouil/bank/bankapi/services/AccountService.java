@@ -20,14 +20,16 @@ import java.util.List;
 public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    public AccountService(AccountRepository accountRepository, UserRepository userRepository) {
+    public AccountService(AccountRepository accountRepository, UserRepository userRepository, JwtUtil jwtUtil) {
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     public List<GetMyAccountResponse> getMyaccount(String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         log.info("[GET MY ACCOUNT] 요청 - userId: {}", userId);
 
         User user = userRepository.findById(userId)

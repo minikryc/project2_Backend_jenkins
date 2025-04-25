@@ -29,10 +29,11 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final TransactionJdbcRepository transactionRepository;
     private final TransactionRepository transactionJPARepository;
+    private final JwtUtil jwtUtil;
 
     @Transactional
     public TransactionResponseDTO transfer(TransferRequestDTO request, String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         log.info("[TRANSFER] 요청 - 사용자: {}, 출금계좌: {}, 입금계좌: {}, 금액: {}", userId, request.getFromAccountNumber(), request.getToAccountNumber(), request.getAmount());
 
         User user = userRepository.findById(userId)
@@ -75,7 +76,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponseDTO withdraw(WithdrawRequestDTO request, String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         log.info("[WITHDRAW] 요청 - 사용자: {}, 출금계좌: {}, 금액: {}", userId, request.getFromAccountNumber(), request.getAmount());
 
         User user = userRepository.findById(userId)
@@ -114,7 +115,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponseDTO deposit(DepositRequestDTO request, String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         log.info("[DEPOSIT] 요청 - 사용자: {}, 입금계좌: {}, 금액: {}", userId, request.getToAccountNumber(), request.getAmount());
 
         User user = userRepository.findById(userId)
@@ -147,7 +148,7 @@ public class TransactionService {
     }
 
     public List<TransactionResponseDTO> getTransactions(String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         log.info("[GET TRANSACTIONS] 요청 - 사용자: {}", userId);
 
         User user = userRepository.findById(userId)
