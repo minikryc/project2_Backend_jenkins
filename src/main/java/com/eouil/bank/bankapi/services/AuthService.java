@@ -34,18 +34,23 @@ public class AuthService {
     private final RedisTemplate<String, String> redisTemplate;
 
     private final AccountService accountService;
-
-    final Map<String, String> refreshStore = new HashMap<>();
+    private final RedisTokenService redisTokenService;
+    private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        Environment env,
-                       RedisTemplate<String, String> redisTemplate, AccountService accountService) {
+                       RedisTemplate<String, String> redisTemplate,
+                       AccountService accountService,
+                       RedisTokenService redisTokenService,
+                       JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.env = env;
         this.redisTemplate = redisTemplate;
         this.accountService = accountService;
+        this.redisTokenService = redisTokenService;
+        this.jwtUtil = jwtUtil;
     }
 
     public boolean isLocal() {
@@ -87,8 +92,8 @@ public class AuthService {
             throw new InvalidPasswordException();
         }
 
-        String accessToken = JwtUtil.generateAccessToken(user.getUserId());
-        String refreshToken = JwtUtil.generateRefreshToken(user.getUserId());
+        String accessToken = jwtUtil.generateAccessToken(user.getUserId());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
         refreshStore.put(user.getUserId(), refreshToken);
 
@@ -102,8 +107,8 @@ public class AuthService {
     public LoginResponse refreshAccessToken(String refreshToken) {
         log.info("[REFRESH] 요청");
 
-        String userId = JwtUtil.validateTokenAndGetUserId(refreshToken);
-        String storedRefreshToken = refreshStore.get(userId);
+        String userId = jwtUtil.validateTokenAndGetUserId(refreshToken);
+        String storedRefreshToken = redisTokenService.getRefreshToken(userId);
 
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new InvalidRefreshTokenException();
@@ -112,7 +117,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        String newAccessToken = JwtUtil.generateAccessToken(userId);
+        String newAccessToken = jwtUtil.generateAccessToken(userId);
         boolean mfaRegistered = user.getMfaSecret() != null;
 
         return new LoginResponse(newAccessToken, refreshToken, mfaRegistered); // 이게 핵심!
@@ -137,7 +142,7 @@ public class AuthService {
     }
 
     public String generateOtpUrlByToken(String token) {
-        String userId = JwtUtil.validateTokenAndGetUserId(token);
+        String userId = jwtUtil.validateTokenAndGetUserId(token);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 

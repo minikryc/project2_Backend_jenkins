@@ -35,6 +35,12 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    private final JwtUtil jwtUtil;
+
+    AuthServiceTest(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
     @Test
     void join_success() {
         JoinRequest request = new JoinRequest();
@@ -84,7 +90,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(request.password, mockUser.getPassword())).thenReturn(true);
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
-            jwtMock.when(() -> JwtUtil.generateAccessToken("test-user-id")).thenReturn("mock-token");
+            jwtMock.when(() -> jwtUtil.generateAccessToken("test-user-id")).thenReturn("mock-token");
 
             LoginResponse response = authService.login(request);
 
@@ -131,8 +137,8 @@ class AuthServiceTest {
         authService.putRefreshTokenForTest(userId, refreshToken);
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
-            jwtMock.when(() -> JwtUtil.validateTokenAndGetUserId(refreshToken)).thenReturn(userId);
-            jwtMock.when(() -> JwtUtil.generateAccessToken(userId)).thenReturn(newAccessToken);
+            jwtMock.when(() -> jwtUtil.validateTokenAndGetUserId(refreshToken)).thenReturn(userId);
+            jwtMock.when(() -> jwtUtil.generateAccessToken(userId)).thenReturn(newAccessToken);
 
         String result = authService.refreshAccessToken(refreshToken);
 
@@ -148,7 +154,7 @@ class AuthServiceTest {
         authService.putRefreshTokenForTest(userId, "correct-token");
 
         try (MockedStatic<JwtUtil> jwtMock = mockStatic(JwtUtil.class)) {
-            jwtMock.when(() -> JwtUtil.validateTokenAndGetUserId(invalidToken)).thenReturn(userId);
+            jwtMock.when(() -> jwtUtil.validateTokenAndGetUserId(invalidToken)).thenReturn(userId);
 
             RuntimeException ex = assertThrows(RuntimeException.class, () ->
                     authService.refreshAccessToken(invalidToken));

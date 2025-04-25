@@ -39,6 +39,11 @@ class TransactionServiceTest {
     private final String token = "mock.jwt.token";
     private final String userId = "user-123";
     private User mockUser;
+    private final JwtUtil jwtUtil;
+
+    TransactionServiceTest(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @BeforeEach
     void setup() {
@@ -49,7 +54,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_userNotFound_shouldThrowException() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO("111-222", "333-444", new BigDecimal("10000"), "메모");
             when(userRepository.findById(userId)).thenReturn(Optional.empty());
@@ -66,7 +71,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_fromAccountNotFound_shouldThrowException() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO("111-222", "333-444", new BigDecimal("10000"), "메모");
             when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
@@ -84,7 +89,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_toAccountNotFound_shouldThrowException() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO("111-222", "333-444", new BigDecimal("10000"), "메모");
 
@@ -109,7 +114,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_unauthorizedAccess_shouldThrowSecurityException() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO("111-222", "333-444", new BigDecimal("10000"), "메모");
 
@@ -142,7 +147,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_insufficientFunds_shouldThrowRuntimeException() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO("111-222", "333-444", new BigDecimal("100000"), "메모");
 
@@ -172,7 +177,7 @@ class TransactionServiceTest {
     @Test
     void testTransfer_success() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             TransferRequestDTO request = new TransferRequestDTO();
             request.setFromAccountNumber("111-222");
@@ -225,7 +230,7 @@ class TransactionServiceTest {
     @Test
     void testWithdraw_success() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             WithdrawRequestDTO request = new WithdrawRequestDTO();
             request.setFromAccountNumber("111-222");
@@ -258,7 +263,7 @@ class TransactionServiceTest {
     @Test
     void testDeposit_success() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             DepositRequestDTO request = new DepositRequestDTO();
             request.setToAccountNumber("333-444");
@@ -291,7 +296,7 @@ class TransactionServiceTest {
     @Test
     void testGetTransactions_success() {
         try (MockedStatic<JwtUtil> mockedStatic = mockStatic(JwtUtil.class)) {
-            mockedStatic.when(() -> JwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
+            mockedStatic.when(() -> jwtUtil.validateTokenAndGetUserId(token)).thenReturn(userId);
 
             //사용자
             when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
