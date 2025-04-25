@@ -9,10 +9,9 @@ import java.security.Key;
 import java.util.Date;
 
 public class JwtUtil {
-    private static final String SECRET_KEY = "0123456789abcdef0123456789abcdef"; // HS256, 최소 32자(256bits) 이상
-                                                                                // 배포 시 환경변수로 관리해야 함
-    private static final long ACCESS_EXP = 1000 * 60 * 30;  // 30분
-    private static final long REFRESH_EXP = 1000 * 60 * 60 * 24 * 7; // 7일
+    private final Key key;
+    private final long ACCESS_EXP = 1000 * 60 * 5;  // 5분
+    private final long REFRESH_EXP = 1000 * 60 * 60 * 24 * 7; // 7일
 
     
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
