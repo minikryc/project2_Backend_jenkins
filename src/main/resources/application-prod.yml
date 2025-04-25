@@ -19,3 +19,12 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
     show-sql: true
+
+  data:
+    redis:
+      host: 52.78.24.102
+      port: 6379
+      timeout: 60000
+
+jwt:
+  secret: ${JWT_SECRET}
