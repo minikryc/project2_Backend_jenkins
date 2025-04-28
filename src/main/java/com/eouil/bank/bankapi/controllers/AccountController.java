@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.eouil.bank.bankapi.metrics.SecurityMetrics;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.List;
 
 @Slf4j
@@ -18,6 +21,8 @@ import java.util.List;
 @RequestMapping("/api")
 public class AccountController {
 
+    @Autowired
+    private final SecurityMetrics securityMetrics;
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
@@ -43,8 +48,11 @@ public class AccountController {
 
         log.info("[GET /accounts/me] 내 계좌 목록 조회 요청 (토큰 일부: {}...)", token.substring(0, Math.min(10, token.length())));
         List<GetMyAccountResponse> responses = accountService.getMyaccount(token);
+
+        // 민감 데이터 접근 메트릭 추가
+        securityMetrics.incrementSensitiveDataAccess();
+
         log.info("[GET /accounts/me] 내 계좌 {}건 조회 완료", responses.size());
 
         return ResponseEntity.ok(responses);
     }
-}

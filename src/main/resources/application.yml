@@ -1,7 +1,16 @@
 spring:
   profiles:
     active: dev
+
 management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        pushgateway:
+          enabled: true
+          base-url: http://[PUSHGATEWAY_IP_OR_HOSTNAME]:9091
+          job: backend-app
   endpoints:
     web:
       exposure:
