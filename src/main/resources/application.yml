@@ -9,7 +9,7 @@ management:
         enabled: true
         pushgateway:
           enabled: true
-          base-url: http://[PUSHGATEWAY_IP_OR_HOSTNAME]:9091
+          base-url: http://3.37.203.42:9091
           job: backend-app
   endpoints:
     web:
