@@ -2,6 +2,7 @@ package com.eouil.bank.bankapi.metrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,5 +38,10 @@ public class SecurityMetrics {
     // 민감 데이터 접근 발생
     public void incrementSensitiveDataAccess() {
         sensitiveDataAccessCounter.increment();
+    }
+
+    @Configuration
+    public static class MeterRegistryConfig {
+
     }
 }

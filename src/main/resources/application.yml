@@ -7,10 +7,6 @@ management:
     export:
       prometheus:
         enabled: true
-        pushgateway:
-          enabled: true
-          base-url: http://3.37.203.42:9091
-          job: backend-app
   endpoints:
     web:
       exposure:
@@ -18,6 +14,13 @@ management:
   endpoint:
     prometheus:
       enabled: true
+
+custom:
+  metrics:
+    pushgateway:
+      enabled: true
+      base-url: 3.37.203.42:9091
+      job: backend-app
 
 logging:
   level:

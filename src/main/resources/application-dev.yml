@@ -21,3 +21,14 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+custom:
+  metrics:
+    pushgateway:
+      base-url: 3.37.203.42:9091

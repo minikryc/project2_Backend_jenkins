@@ -21,11 +21,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class AccountController {
 
-    @Autowired
     private final SecurityMetrics securityMetrics;
     private final AccountService accountService;
 
-    public AccountController(AccountService accountService) {
+    @Autowired
+    public AccountController(SecurityMetrics securityMetrics, AccountService accountService) {
+        this.securityMetrics = securityMetrics;
         this.accountService = accountService;
     }
 
@@ -56,3 +57,4 @@ public class AccountController {
 
         return ResponseEntity.ok(responses);
     }
+}
